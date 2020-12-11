@@ -18,4 +18,31 @@ export default class Auth {
     // method available on the auth0 WebAuth object; this will redirect the browser to the auth0 login page 
     this.auth0.authorize();
   };
+
+  handleAuthentication = () => {
+    // function built-in in the auth0-js library to parse the hash from the url; what we get from it is an error object or a result
+    this.auth0.parseHash((err, authResult) => {
+      // we expecting to receive the authResult and the authResult should haven an acces and an id token 
+      if (authResult && authResult.accessToken && authResult.idToken) {
+        // if we receive the info that we expected then we are going to create our session and store some data in local storage (there are better options) 
+        this.setSession(authResult);
+        // programatically tell react router to redirect to a new url
+        this.history.push("/");
+      } else if(err) {
+        this.history.push("/");
+        alert(`Error: ${err.error}. Check the console for further details.`);
+        console.log(err);
+      }
+    });
+  };
+
+  setSession = (authResult) => {
+    // set the time that the acces token will expire, so we can write this to localstorage and check wheter the jwt is still valid
+    const expiresAt = JSON.stringify(authResult.expiresIn * 1000 + new Date().getTime());
+
+    // alternatively we can use jwt-decode (on npm) for this, and put this logic in the React components if preferred
+    localStorage.setItem("acces_token", authResult.accessToken);
+    localStorage.setItem("id_token", authResult.idToken);
+    localStorage.setItem("expires_at", expiresAt);
+  }
 }
