@@ -1,4 +1,4 @@
-import auth0 from 'auth0-js';
+import auth0 from "auth0-js";
 
 export default class Auth {
   // passing the react router history will allow to programatically interact with
@@ -10,7 +10,12 @@ export default class Auth {
       clientID: process.env.REACT_APP_AUTH0_CLIENT_ID,
       redirectUri: process.env.REACT_APP_CALLBACK_URL,
       responseType: "token id_token",
-      scope: "openid profile email"
+      scope: "openid profile email",
     });
   }
+
+  login = () => {
+    // method available on the auth0 WebAuth object; this will redirect the browser to the auth0 login page 
+    this.auth0.authorize();
+  };
 }
