@@ -1,8 +1,15 @@
 import React from "react";
-
+import { Route } from 'react-router-dom';
+import Home from './Home';
+import Profile from './Profile';
 class App extends React.Component {
   render() {
-    return <div className="App"></div>;
+    return(
+      <>
+        <Route path="/" exact component={Home}/>
+        <Route path="/profile" component={Profile}/>
+      </>
+    );
   }
 }
 
