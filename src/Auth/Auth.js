@@ -5,6 +5,7 @@ export default class Auth {
   // react router since we have a reference to the history object within our Auth object here
   constructor(history) {
     this.history = history;
+    this.userProfile = null;
     this.auth0 = new auth0.WebAuth({
       domain: process.env.REACT_APP_AUTH0_DOMAIN,
       clientID: process.env.REACT_APP_AUTH0_CLIENT_ID,
@@ -41,21 +42,22 @@ export default class Auth {
     const expiresAt = JSON.stringify(authResult.expiresIn * 1000 + new Date().getTime());
 
     // alternatively we can use jwt-decode (on npm) for this, and put this logic in the React components if preferred
-    localStorage.setItem("acces_token", authResult.accessToken);
+    localStorage.setItem("access_token", authResult.accessToken);
     localStorage.setItem("id_token", authResult.idToken);
     localStorage.setItem("expires_at", expiresAt);
-  }
+  };
 
   // determine whether the user is authenticated
   isAuthenticated() {
     const expiresAt = JSON.parse(localStorage.getItem('expires_at'));
     return new Date().getTime() < expiresAt;
-  }
+  };
 
   logout = () => {
-    localStorage.removeItem("acces_token");
+    localStorage.removeItem("access_token");
     localStorage.removeItem("id_token");
     localStorage.removeItem("expires_at");
+    this.userProfile = null;
     // this is for a soft logout (soft logout: it doesnt kill the session in the auth0 server)
     // note: aparently auth0 doesnt keep making a soft logout with this approach, and the this.auth.logout will be innecesary
     // this.history.push("/");
@@ -64,6 +66,26 @@ export default class Auth {
     this.auth0.logout({
       clientID: process.env.REACT_APP_AUTH0_CLIENT_ID,
       returnTo: "http://localhost:3000"
+    })
+  };
+
+  // will get the acces token from localstorage and throw an error if the acces token isnt found
+  getAccesToken = () => {
+    const accessToken = localStorage.getItem("access_token");
+    if (!accessToken) {
+      throw new Error("No acces token found.");
+    }
+
+    return accessToken;
+  };
+
+  getProfile = (cb) => {
+    // return the user's profile if is already found
+    if (this.userProfile) return cb(this.userProfile);
+    // obtain the user's profile (or an error) if it wasnt found inmediately
+    this.auth0.client.userInfo(this.getAccesToken(), (err, profile) => {
+      if (profile) this.userProfile = profile;
+      cb(profile, err);
     })
   }
 }
