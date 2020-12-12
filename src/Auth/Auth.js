@@ -6,13 +6,14 @@ export default class Auth {
   constructor(history) {
     this.history = history;
     this.userProfile = null;
+    this.requestedScopes = "openid profile email read:courses",
     this.auth0 = new auth0.WebAuth({
       domain: process.env.REACT_APP_AUTH0_DOMAIN,
       clientID: process.env.REACT_APP_AUTH0_CLIENT_ID,
       redirectUri: process.env.REACT_APP_CALLBACK_URL,
       audience: process.env.REACT_APP_AUTH0_AUDIENCE,
       responseType: "token id_token",
-      scope: "openid profile email",
+      scope: this.requestedScopes
     });
   }
 
@@ -42,10 +43,15 @@ export default class Auth {
     // set the time that the acces token will expire, so we can write this to localstorage and check wheter the jwt is still valid
     const expiresAt = JSON.stringify(authResult.expiresIn * 1000 + new Date().getTime());
 
+    // if there is a value on the 'scope' param from the authResult, use it to set scopes in the session for the user. Otherwise
+    // use the scopes as requested. If no scopes were requested, set it to nothing
+    const scopes = authResult.scope || this.requestedScopes || '';
+
     // alternatively we can use jwt-decode (on npm) for this, and put this logic in the React components if preferred
     localStorage.setItem("access_token", authResult.accessToken);
     localStorage.setItem("id_token", authResult.idToken);
     localStorage.setItem("expires_at", expiresAt);
+    localStorage.setItem("scopes", JSON.stringify(scopes));
   };
 
   // determine whether the user is authenticated
@@ -58,6 +64,7 @@ export default class Auth {
     localStorage.removeItem("access_token");
     localStorage.removeItem("id_token");
     localStorage.removeItem("expires_at");
+    localStorage.removeItem("scopes");
     this.userProfile = null;
     // this is for a soft logout (soft logout: it doesnt kill the session in the auth0 server)
     // note: aparently auth0 doesnt keep making a soft logout with this approach, and the this.auth.logout will be innecesary
@@ -88,5 +95,12 @@ export default class Auth {
       if (profile) this.userProfile = profile;
       cb(profile, err);
     })
+  };
+
+  userHasScopes(scopes) {
+    const grantedScopes = (
+      JSON.parse(localStorage.getItem("scopes")) || ""
+    ).split(" ");
+    return scopes.every(scope => grantedScopes.includes(scope));
   }
 }
